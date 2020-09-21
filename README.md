@@ -54,6 +54,112 @@ Subject: Hadoop, U-Demy
         - Horizontal scaling is linear
         - Not just for batch processing anymore
 - Module 2 - Using Hadoop's Core: HDFS and MapReduce
+    - HDFS: Hadoop distributed file system
+        - Handles big files
+        - Accomplishes this by breaking up the data into 128mb blocks
+        - Allows distributing of processing by allocating these blocks onto many machines
+        - Can be stored across many computers. More than one copy is stored to deal with failure of drives
+    - HDFS Architecture
+        - Name Node: Keeps track of where all the blocks are allocated to. Also maintains an edit log that keeps track of what is being created/modified/delete etc.
+        - Data Node:  Where blocks of data are stored
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/Capture.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/Capture.png)
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/writing_file.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/writing_file.png)
+
+        - Only one name node is active at a time. These are methods used in case the name node goes offline to retain data
+            - Back up metadata: Namenode writes to local disk and NFS
+            - Secondary Namenode: Maintains merged copy of the edit log can restore from
+            - HDFS Federation: Each namenode manages a specific namespace volume
+            - HDFS High Availability
+                - Hot standby namenode using shared edit log
+                - Zookeeper tracks active namenodes
+                - Uses extreme measures to ensure only one namenode is used at a time
+            - Using HDFS
+                - UI (Ambari)
+                - Command-line interface
+                - HTTP / HDFS proxies
+                - Java Interface
+                - NFS Gateway
+        - 'File view' gives you the functionality of interacting with the node like a file explorer. You are able to navigate to user and create, delete, copy, move, concatenate, etc directories on the HDFS.
+        - Within the HDFS tab on the left you are able to see how many namenodes, datanodes, space used and so on.
+        - To interact with the Hadoop system using command line you have to prefix the command with the hadoop keyword
+
+            ```bash
+            hadoop fs -ls 
+            hadoop fs -mkdir [dir_name]
+            hadoop fs -copyFromLocal [filename] [relativepath]
+            hadoop fs -rm [relativepath]
+            hadoop fs -rmdir [relativepath]
+            hadoop fs -help
+            ```
+
+        - Why MapReduce?
+            - Distributes the processing of data on your cluster
+            - Divides your data up into partitions that are **MAPPED** (transformed) and **REDUCED** (aggregated) by mapper and reducer functions you define.
+            - Resilient to failure - an application master monitors your mappers and reducers on each partition.
+        - From the Mapper function the result is a key:value pair
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/mapper.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/mapper.png)
+
+        - The next step is that MapReduce will automatically aggregate the values and sort them. This is called Mapped Data (Shuffle and Sort) **The Shuffle and Sort stage sorts by the key.**
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/mapped_data.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/mapped_data.png)
+
+        - Reducer: Decides what to do with the output
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/reducer.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/reducer.png)
+
+        - The final pipeline for the above will look like this
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/full_pipeline.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/full_pipeline.png)
+
+        - The overall pipeline of how HDFS handles MapReduce
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/hdfs_map_reduce.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/hdfs_map_reduce.png)
+
+        - MapReduce is natively Java
+        - **STREAMING** allows interfacing to other languages (Python)
+        - Application master monitoring worker tasks for errors or hanging
+            - Restarts as needed
+            - Preferably on a different node
+        - What if the application master goes down?
+            - YARN can try to restart it
+        - What if an entire Node goes down?
+            - This could be an application master
+            - The resource manager will try to restart it
+        - What if the resource monitor goes down?
+            - Can set up "high availability" (HA) using Zookeeper to have a hot standby
+        - Problem: Count the number of reviews for each rating
+            - MAP each input line to (rating, 1)
+            - REDUCE each rating with the sum of all the 1's
+
+            ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/problem1.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/problem1.png)
+
+        - The following should be run on the Hortonworks VM in-order to get MapReduce working.
+
+            ```bash
+            ## pip
+            yum install python-pip
+            ## MRJob
+            pip install mrjob==0.5.11
+            ## Nano or neovim
+            yum install nano
+            yum install nvim
+            ## Data files and the script
+            wget http://media.sundog-soft.com/hadoop/ml-100k/u.data
+            wget http://media.sundog-soft.com/hadoop/RatingsBreakdown.py
+            ```
+
+        - Running the python script to run the MapReduce functionality
+
+            ```bash
+            ## Run Locally
+            python RatingsBreakdown.py u.data
+            ## Run with hadoop
+            python RatingsBreakdown.py -r hadoop --hadoop-streaming-jar /usr/hdp/current/hadoop-mapreduce-client/hadoop-streaming.jar u.data
+            ```
+
 - Module 3 - Programming Hadoop with Pig
 - Module 4 - Programming Hadoop with Spark
 - Module 5 - Using relational data stores with Hadoop
