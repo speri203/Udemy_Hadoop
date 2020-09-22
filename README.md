@@ -161,6 +161,142 @@ Subject: Hadoop, U-Demy
             ```
 
 - Module 3 - Programming Hadoop with Pig
+    - Ambari can be used to install all of the extra services that Hadoop can use. A lot of people first set up a cluster by getting Ambari working.
+    - To get admin privilege's
+        - SSH to your server
+        - Run su root
+        - ambari-admin-password-reset
+        - Then login to Ambari using admin as username and password you set.
+    - Pig is a scripting language built on top of Hadoop and MapReduce that lets you write MapReduce without Mappers and Reducers
+    - Pig is short for Pig Latin and lets you write SQL-like syntax to define your map and reduce steps.
+    - Highly extensible with user-defined functions (UDF)
+
+        ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/pig_framework.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/pig_framework.png)
+
+    - To load up data into a relation
+
+        ```bash
+        ratings = LOAD '<file on HDFS cluster>' as (variables:type)
+        ```
+
+    - Oldest 5 star movie
+
+        ```sql
+        ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS 
+        (userID:int, movieID:int, rating:int, ratingTime:int);
+
+        metadata = LOAD '/user/maria_dev/ml-100k/u.item' USING 
+         PigStorage('|') AS (movieID:int, movieTitle:chararray, releaseDate:chararray, 
+         videoRelease:chararray, imdbLink:chararray);
+         
+        nameLookup = FOREACH metadata GENERATE movieID, movieTitle, 
+        ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) as releaseTime;
+
+        ratingByMovie = GROUP ratings BY movieID;
+
+        avgRatings = FOREACH ratingByMovie GENERATE group AS movieID, AVG(ratings.rating) as avgRating;
+
+        fiveStarMovies = FILTER avgRatings BY avgRating > 4.0;
+
+        fiveStarsWithData = JOIN fiveStarMovies BY movieID, nameLookup BY movieID;
+
+        oldestFiveStarMovies = ORDER fiveStarsWithData BY nameLookup::releaseTime;
+
+        DUMP oldestFiveStarMovies;
+        ```
+
+    - Extra commands in Pig
+
+        ```sql
+        LOAD, STORE, DUMP
+        FILTER, DISTINCT, FOREACH/GENERATE, MAPREDUCE
+        STREAM, SAMPLE
+        JOIN, COGROUP, GROUP, CROSS, CUBE
+        ORDER, RANK, LIMIT
+        UNION, SPLIT
+
+        ## Diagnostic commands
+        DESCRIBE
+        EXPLAIN
+        ILLUSTRATE
+
+        AVG, CONCAT, COUNT, MAX, MIN, SIZE, SUM
+
+        PigStorage, TextLoader, JsonLoader, AvroStorage, ParquetLoader,
+        OrcStorage, HBaseStorage
+        ```
+
+        - Exercise: Count the number of bad movie ratings (less than 2.0)
+
+        ```sql
+        ratings = LOAD '/user/maria_dev/ml-100k/u.data' AS (userID:int, movieID:int, rating:int, ratingTime:int);
+
+        metadata = LOAD '/user/maria_dev/ml-100k/u.item' USING PigStorage('|') AS (movieID:int, movieTitle:chararray, releaseDate:chararray, videoRelease:chararray, imdbLink:chararray);
+
+        nameLookup = FOREACH metadata GENERATE movieID, movieTitle, ToUnixTime(ToDate(releaseDate, 'dd-MMM-yyyy')) as releaseTime;
+
+        ratingByMovie = GROUP ratings by movieID;
+
+        avgRatings = FOREACH ratingByMovie GENERATE group AS movieID, COUNT(ratings.rating) as numCount, AVG(ratings.rating) as avgRating;
+
+        oneStar = FILTER avgRatings BY avgRating < 2.0;
+
+        oneStarWithName= JOIN oneStar BY movieID, nameLookup BY movieID;
+
+        oldestOneStar = ORDER oneStarWithName BY nameLookup::releaseTime;
+
+        DUMP oldestOneStar;
+        ```
+
 - Module 4 - Programming Hadoop with Spark
+    - Spark: 'A fast and general engine for large-scale data processing'
+
+        ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/spark.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/spark.png)
+
+    - Spark uses cache rather than HDFS so the speed is far better
+        - "Run programs up to 100x faster than Hadoop MapReduce in memory, or 10x faster on disk."
+        - DAG Engine (directed acyclic graph) optimized workflow
+    - Code in Python, Java, or Scala
+    - Built on one main concept: the Resilient Distributed Dataset (RDD)
+
+        ![U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/spark_components.png](U-demy%20Hadoop%2068a5d32e703c42a8947174e9a5405439/spark_components.png)
+
+        - Spark Streaming: Lets you input data in real time rather than batch processing. For example, devices that are streaming component status.
+        - Spark SQL: SQL interface to Spark. If you are familiar with SQL this is really nice.
+        - MLLib: Machine learning and data mining library found within Spark.
+        - GraphX: More like Graph Theory.
+    - The SparkContext created in your driver program creates the RDD
+    - Transforming RDDS
+
+        ```sql
+        map
+        flatmap
+        filter
+        distinct
+        sample
+        union, intersection, subtract, cartesian
+        ```
+
+    - RDD Actions
+
+        ```sql
+        collect
+        count
+        countByValue
+        take
+        top 
+        reduce
+        ... and more...
+        ```
+
+    - Nothing actually happens in your driver program until an action is called.
+    - When running python spark scripts you need to first run the following command to set up the environment
+        - spark-submit <python file name>
+    - DataFrames
+        - Contain Row Objects
+        - Can run SQL queries
+        - Has a scheme (leading to more efficient storage)
+        - Read and write to JSON, Hive, parquet
+        - Communicates with JDBC/ODBC, Tableau
 - Module 5 - Using relational data stores with Hadoop
 - Module 6 - Using non-relational data stores with Hadoop
